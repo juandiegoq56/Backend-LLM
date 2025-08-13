@@ -2,7 +2,7 @@
 /dist
 /node_modules
 /build
-
+/src/services/unidades-tematicas.service.ts
 # Logs
 logs
 *.log

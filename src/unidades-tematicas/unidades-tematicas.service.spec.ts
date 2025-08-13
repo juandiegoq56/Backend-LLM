@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnidadesTematicasService } from './unidades-tematicas.service';
+import { UnidadesTematicasService } from '../services/unidades-tematicas.service';
 
 describe('UnidadesTematicasService', () => {
   let service: UnidadesTematicasService;

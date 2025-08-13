@@ -11,7 +11,7 @@ import { Temas } from 'src/entities/Tema/temas.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'mysql', // Cambia según tu base de datos (puede ser postgres, sqlite, etc.)
-      host: '10.80.34.131',
+      host: '10.80.32.11',
       port: 3306,
       username: 'remote',
       password: '1234', // Cambia según tu configuración
