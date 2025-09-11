@@ -11,7 +11,6 @@ import { Usuario } from 'src/entities/Usuario/usuario.entity';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -21,10 +20,18 @@ dotenv.config();
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD, // Cambia según tu configuración
       database: process.env.DB_DATABASE, // Nombre de tu base de datos
-      entities: [Facultad,Proyecto,Asignatura,Temas,Conversacion,Mensajes,Usuario], // Registra la entidad aquí
+      entities: [
+        Facultad,
+        Proyecto,
+        Asignatura,
+        Temas,
+        Conversacion,
+        Mensajes,
+        Usuario,
+      ], // Registra la entidad aquí
+      synchronize: true, //QUitarla ojo no enviar
     }),
     UnidadesTematicasModule, // Importa el módulo
   ],
 })
 export class DatabaseModule {}
-
