@@ -9,7 +9,10 @@ import { Mensajes } from '../entities/Mensajes/mensajes.entity';
 import { Conversacion } from 'src/entities/Conversacion/conversacion.entity';
 //import  {Ollama}  from 'ollama' // Importamos la librería Ollama
 import { UnidadesTematicas } from 'src/entities/unidades-tematicas/unidades-tematicas.entity';
-import ollama from 'ollama';
+
+import { Ollama } from 'ollama'
+
+const ollama = new Ollama({ host: 'https://0x4kt4cc-11434.use2.devtunnels.ms' })
 
 
 
@@ -153,7 +156,7 @@ Responde teniendo en cuenta el historial y usando un lenguaje claro, guiando pas
   // Llamada a Ollama
   try {
     const response = await ollama.generate({
-      model: 'llama3.1:8b',
+      model: 'llama3.2:3b',
       prompt,
       options: { temperature: 0 },
     });

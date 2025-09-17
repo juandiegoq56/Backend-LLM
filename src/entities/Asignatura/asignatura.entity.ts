@@ -8,9 +8,11 @@ export class Asignatura{
   idasignatura: number;
  @Column({ type: 'varchar', length: 500 })
   nombre: string;
+ @Column({ type: 'number' })
+  idproyecto: number;
  @Column({ type: 'bigint' })
-  idproyecto: bigint;
- 
+  semestre: bigint;
+
  @ManyToOne(() => Proyecto, (proyecto) => proyecto.asignaturas)
 @JoinColumn({ name: 'idproyecto' })
   proyecto: Proyecto;

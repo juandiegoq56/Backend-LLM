@@ -32,10 +32,14 @@ export class UnidadesTematicasController {
   async obtenerProyectosPorFacultad(@Param('facultad') facultad: number): Promise<any> {
     return this.obtenerProyectoService.obtenerProyectosPorFacultad(facultad);
   }
-  @Get('asignaturas/:proyecto')
-  async obtenerAsignauraPorProyecto(@Param('proyecto') proyecto: number): Promise<any> {
-    return this.obtenerasignaturaService.obtenerAsignauraPorProyecto(proyecto);
-  }
+ @Get('asignaturas/:proyecto/service/:idservicio')
+async obtenerAsignaturaPorProyecto(
+  @Param('proyecto') proyecto: number,
+  @Param('idservicio') idservicio: number,
+): Promise<any> {
+  return this.obtenerasignaturaService.obtenerAsignaturaPorProyecto(proyecto, idservicio);
+}
+
 
   @Get('temas/:asignatura')
   async obtenerTemasPorAsignatura(@Param('asignatura') asignatura: number): Promise<any> {
@@ -92,10 +96,15 @@ async generarRespuestaLLM(
   }
 
   // GET /conversaciones/:id
-  @Get('conversaciones/:id')
-  async getOne(@Param('id') id: number): Promise<Conversacion  | null > {
-    return this.obenerconversacionesService.findOne(id);
-  }
+ @Get('conversaciones/:id/service/:idservice')
+async getOne(
+  @Param('id') id: string,
+  @Param('idservice') idservice: bigint,
+): Promise<any[]> {
+  return this.obenerconversacionesService.findByUsuario(id, idservice);
+}
+
+
  @Get('mensajes')
   async getAllMensajes() {
     return this.obtenermensajesService.findAllmensaje(); // 👈 aquí invocas tu servicio
@@ -122,6 +131,7 @@ async getOneMensaje(@Param('id') id: number) {
         createConversacionDto.titulo,
         createConversacionDto.idusuario,
         createConversacionDto.idtemas,
+        createConversacionDto.idservicio
       );
 
       res.status(HttpStatus.CREATED).json({
@@ -131,6 +141,7 @@ async getOneMensaje(@Param('id') id: number) {
         fcreacion: conversacion.fcreacion,
         idusuario: conversacion.idusuario,
         idtemas: conversacion.idtemas,
+        
       });
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({

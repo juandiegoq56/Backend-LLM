@@ -13,7 +13,7 @@ export class MoodleService {
    */
   async obtenerUserByFields(email: string, numdocumento?: string): Promise<any> {
 
-
+   
     try {
       const params: Record<string, any> = {
         wstoken: this.TOKEN_UD,
@@ -30,7 +30,6 @@ export class MoodleService {
       }
 
       const res = await axios.post(this.MOODLE_URL_UD, null, { params });
-
       if (res.data && res.data.users && res.data.users.length > 0) {
         return res.data.users[0];
       } else {

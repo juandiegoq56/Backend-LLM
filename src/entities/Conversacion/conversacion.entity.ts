@@ -16,11 +16,14 @@ export class Conversacion {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fultimo_mensaje: Date;
 
-  @Column({ type: 'bigint' })
-  idusuario: bigint;
+  @Column({ type: 'string' })
+  idusuario: string;
 
   @Column({ type: 'bigint' })
   idtemas: bigint;
+
+  @Column({ type: 'bigint' })
+  idservicio: bigint;
 
   @ManyToOne(() => Temas, (tema) => tema.conversacion, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'idtemas' })

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Facultad } from 'src/entities/Facultad/facultad.entity';
 import { Proyecto } from 'src/entities/Proyecto/proyecto.etity';
-
+import { Asignatura } from 'src/entities/Asignatura/asignatura.entity';
 
 @Injectable()
 export class AsignaturaService {
@@ -12,21 +12,34 @@ export class AsignaturaService {
     private facultadRepository: Repository<Facultad>,
     @InjectRepository(Proyecto)
     private proyectoRepository: Repository<Proyecto>,
+     @InjectRepository(Asignatura)
+    private asignaturaRepository: Repository<Asignatura>,
   ) {}
 
- async obtenerAsignauraPorProyecto(proyecto: number): Promise<any> {
-  const asignatura = await this.proyectoRepository.find({
-    relations: {
-      asignaturas: true, 
-    },
-    where: {
-      idproyecto: proyecto, 
-    },
-  });
+async obtenerAsignaturaPorProyecto(proyecto: number, idservicio: number): Promise<any> {
+  console.log("Servicio recibido:", idservicio);
 
-  
-  const asignaturas = asignatura.map(f => f.asignaturas).flat();
-  return asignaturas;
+  if (Number(idservicio) === 1) {
+    console.log("Entró en el 1");
+    return await this.asignaturaRepository.find({
+      where: {
+        idproyecto: proyecto, // si tu campo en la DB es BIGINT
+        semestre: BigInt(1),          // semestre fijo en 1
+      },
+    });
+  } else {
+    console.log("Entró en el 2");
+    return await this.asignaturaRepository.find({
+      where: {
+        idproyecto: proyecto,
+      },
+    });
+  }
 }
+
+
+
+
+
 
 }

@@ -4,12 +4,12 @@ export class CreateConversacionDto {
   @IsString()
   @IsNotEmpty()
   titulo: string;
+  idusuario: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  idusuario: number;
+  
 
   @IsNumber()
   @IsNotEmpty()
   idtemas: number;
+  idservicio: number;
 }
