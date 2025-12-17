@@ -17,10 +17,9 @@ export class AsignaturaService {
   ) {}
 
 async obtenerAsignaturaPorProyecto(proyecto: number, idservicio: number): Promise<any> {
-  console.log("Servicio recibido:", idservicio);
 
   if (Number(idservicio) === 1) {
-    console.log("Entró en el 1");
+    
     return await this.asignaturaRepository.find({
       where: {
         idproyecto: proyecto, // si tu campo en la DB es BIGINT
@@ -28,7 +27,6 @@ async obtenerAsignaturaPorProyecto(proyecto: number, idservicio: number): Promis
       },
     });
   } else {
-    console.log("Entró en el 2");
     return await this.asignaturaRepository.find({
       where: {
         idproyecto: proyecto,

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Facultad } from 'src/entities/Facultad/facultad.entity';
@@ -9,7 +9,7 @@ import { Mensajes } from '../entities/Mensajes/mensajes.entity';
 import { Conversacion } from 'src/entities/Conversacion/conversacion.entity';
 //import  {Ollama}  from 'ollama' // Importamos la librería Ollama
 import { UnidadesTematicas } from 'src/entities/unidades-tematicas/unidades-tematicas.entity';
-
+import * as math from 'mathjs';
 import { Ollama } from 'ollama'
 
 const ollama = new Ollama({ host: 'https://0x4kt4cc-11434.use2.devtunnels.ms' })
@@ -73,7 +73,39 @@ export class UnidadesTematicasService {
   };
 }
 
-async generarRespuestaLLM(
+private async generarEmbedding(contenido: string): Promise<number[]> {
+    const embeddingUrl = process.env.EMBEDDING;
+    if (!embeddingUrl) {
+      throw new InternalServerErrorException('La variable EMBEDDING no está definida');
+    }
+
+    const response = await fetch(embeddingUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'nomic-embed-text',
+        prompt: contenido,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al generar embedding: ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as { embedding: number[] };
+    return data.embedding;
+  }
+
+  // 🧠 Cálculo de similitud coseno entre dos embeddings
+  private calcularSimilitud(a: number[], b: number[]): number {
+  const dot = math.dot(a, b) as number;
+  const normaA = math.norm(a) as number;
+  const normaB = math.norm(b) as number;
+
+  return dot / (normaA * normaB);
+}
+
+ async generarRespuestaLLM(
   data:
     | {
         idconversacion: number;
@@ -87,12 +119,12 @@ async generarRespuestaLLM(
     | {
         idconversacion: number;
         pregunta: string;
-      }
+      },
 ): Promise<string> {
   const { idconversacion } = data;
   let prompt = '';
 
-  // Caso 1: Inicio de conversación (trae contexto académico directo)
+  // 🧩 Caso 1: inicio de conversación
   if ('facultad' in data) {
     const { facultad, proyectoCurricular, materia, tema, subtema, pregunta } = data;
 
@@ -113,47 +145,90 @@ Pregunta del estudiante:
 "${pregunta}"
 
 Responde de forma estructurada, clara y con ejemplos sencillos para ayudar al estudiante a nivelarse en esta materia.
-    `;
+`;
   }
 
-  // Caso 2: Continuación de la conversación (trae solo la pregunta, se consulta contexto)
-  else if ('pregunta' in data) {
-    const { pregunta } = data;
-    // Obtener contexto académico a partir del idconversacion
-    const contexto = await this.obtenerContextoAcademico(idconversacion);
-  
-    // Traer últimos 6 mensajes de la conversación
-    const historial = await this.mensajesRepository.find({
-      where: { idconversacion },
-      order: { fcreado: 'DESC' },
-      take: 6,
-    });
+  // 🧩 Caso 2: continuación con historial relevante
+ else if ("pregunta" in data) {
+  const { pregunta } = data;
 
-    historial.reverse();
+  // 1️⃣ Generar embedding de la nueva pregunta
+  const embeddingPregunta = await this.generarEmbedding(pregunta);
 
-    const historialTexto = historial
-      .map((m) => `${m.emisor === 'user' ? 'Usuario' : 'Tutor'}: ${m.contenido}`)
-      .join('\n');
+  // 2️⃣ Traer todos los mensajes anteriores del AGENT
+  const mensajes = await this.mensajesRepository.find({
+    where: { idconversacion, emisor: "agent" },
+    order: { fcreado: "ASC" },
+  });
 
+  // Si no hay mensajes, historial vacío
+  if (mensajes.length === 0) {
     prompt = `
-Eres un tutor virtual experto en nivelación universitaria. 
-Tu especialidad es la materia "${contexto.materia}" del proyecto curricular "${contexto.proyectoCurricular}" 
-de la facultad "${contexto.facultad}". 
-Siempre debes responder de manera clara, pedagógica y sin desviarte de esta asignatura. 
-Ignora cualquier pregunta que no esté relacionada con "${contexto.materia}".
+Nueva pregunta del estudiante:
+"${pregunta}"
 
-ten presente el Historial reciente de la conversación, con el fin de resolver ejercicios anteriores si te preguntan que como resolverlo o que si les ayudas a resolverlo
-el historial es el siguiente:
+Responde de manera pedagógica, clara y estructurada.
+`;
+  }
+
+  // 3️⃣ Normalizar recencia (0 → antiguo, 1 → reciente)
+  const fechas = mensajes.map((m) => new Date(m.fcreado).getTime());
+  const minFecha = Math.min(...fechas);
+  const maxFecha = Math.max(...fechas);
+
+  const normalizarRecencia = (fechaMs: number) => {
+    if (maxFecha === minFecha) return 1; // evitar división por cero si solo hay un mensaje
+    return (fechaMs - minFecha) / (maxFecha - minFecha); 
+  };
+
+  // 4️⃣ Calcular similitud + peso por recencia
+  const mensajesConPeso = mensajes
+    .filter((m) => m.embedding)
+    .map((m) => {
+      const vector = JSON.parse(m.embedding) as number[];
+      const similitud = this.calcularSimilitud(embeddingPregunta, vector);
+
+      const fechaMs = new Date(m.fcreado).getTime();
+      const recencia = normalizarRecencia(fechaMs);
+
+      // Score final combinando similitud + recencia
+      const score = similitud * 0.7 + recencia * 0.3;
+
+      return { ...m, similitud, recencia, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  // 5️⃣ Crear texto del historial relevante
+  const historialTexto = mensajesConPeso
+    .map(
+      (m) =>
+        `Tutor: ${m.contenido}\n  → similitud: ${m.similitud.toFixed(
+          2
+        )}, recencia: ${m.recencia.toFixed(2)}, score: ${m.score.toFixed(2)}`
+    )
+    .join("\n\n");
+
+  console.log("\n🧩 Historial relevante (ponderado por recencia):\n", historialTexto);
+
+    // 6️⃣ Armar prompt final
+    prompt = `
+Eres un tutor virtual experto en nivelación universitaria.
+
+Ten en cuenta lo siguiente para responder la nueva pregunta:
+
+- 🧩 Historial relevante de la conversación (mensajes más relacionados con la nueva pregunta):
 ${historialTexto}
 
 Nueva pregunta del estudiante:
 "${pregunta}"
 
-Responde teniendo en cuenta el historial y usando un lenguaje claro, guiando paso a paso al estudiante.
-    `;
+Responde de manera pedagógica, clara y estructurada. 
+Puedes referirte brevemente a lo que ya explicó el tutor en su última respuesta si es relevante.
+`;
   }
 
-  // Llamada a Ollama
+  // 🚀 Enviar prompt al modelo
   try {
     const response = await ollama.generate({
       model: 'llama3.2:3b',
@@ -166,10 +241,8 @@ Responde teniendo en cuenta el historial y usando un lenguaje claro, guiando pas
     console.error('Error al generar la respuesta con Ollama:', error.message);
     return 'Ocurrió un error al intentar generar la respuesta.';
   }
-
-
-
 }
+
 
   /*async obtenerUnidadesPorFiltros(
     facultad: string,

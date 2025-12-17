@@ -12,6 +12,9 @@ export class Mensajes {
   @Column({ type: 'varchar', length: 500 })
    contenido: string;
 
+  @Column({ type: 'varchar', length: 500 })
+  embedding : string;
+
   @Column({ type: 'date' })
   fcreado: Date;
 
