@@ -1,12 +1,14 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Ollama } from 'ollama';
 import * as math from 'mathjs';
+import * as dotenv from 'dotenv';
+
 @Injectable()
 export class LlmService {
   private ollama: Ollama;
 
   constructor() {
-    this.ollama = new Ollama({ host: 'https://0x4kt4cc-11434.use2.devtunnels.ms' });
+    this.ollama = new Ollama({ host: process.env.URL_IA });
   }
 
   async generarEmbedding(contenido: string): Promise<number[]> {
