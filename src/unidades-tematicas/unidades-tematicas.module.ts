@@ -17,9 +17,12 @@ import { TemasService } from 'src/services/obtener-temas.services';
 import { ConversacionService } from 'src/services/conversaciones.service';
 import { MensajesService } from 'src/services/mensajes.service';
 import { MoodleService } from 'src/services/user.service';
+import { LlmService } from 'src/services/llm.service';
+
 @Module({
   imports: [TypeOrmModule.forFeature([Facultad,UnidadesTematicas,Proyecto,Asignatura,Temas,Conversacion,Mensajes,Usuario])], // Registra la entidad
-  providers: [UnidadesTematicasService,ObtenerFacultad,ProyectoService,AsignaturaService,TemasService,ConversacionService,MensajesService,MoodleService], // Registra el servicio
+  providers: [UnidadesTematicasService,ObtenerFacultad,ProyectoService,AsignaturaService,TemasService,ConversacionService,MensajesService,
+    MoodleService,LlmService], // Registra el servicio
   controllers: [UnidadesTematicasController], // Registra el controlador
 })
 

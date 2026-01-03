@@ -10,6 +10,7 @@ import { Mensajes } from '../entities/Mensajes/mensajes.entity';
 import { CreateMensajeDto } from 'src/dto/create-mensaje.dto';
 import * as moment from 'moment-timezone';
 import fetch from 'node-fetch';
+import { classifyFormFlag } from './clasificador.service';
 import * as dotenv from 'dotenv';
 
 @Injectable()
@@ -39,7 +40,7 @@ export class MensajesService {
     const mensajes = await this.mensajesRepository.find({
       where: { conversacion: { idconversacion: id } },
       relations: ['conversacion'],
-      order: { fcreado: 'ASC' },
+      order: { fcreado: 'DESC' },
     });
 
     if (!mensajes || mensajes.length === 0) {
@@ -91,7 +92,7 @@ export class MensajesService {
     }
   }
 
-  // ✅ Crear mensaje y generar embedding
+  // Crear mensaje y generar embedding
   async create(createMensajeDto: CreateMensajeDto): Promise<any> {
     const { emisor, contenido, idconversacion } = createMensajeDto;
     const now = moment().tz('America/Bogota').toDate();
@@ -99,17 +100,34 @@ export class MensajesService {
     if (!['user', 'agent'].includes(emisor)) {
       throw new BadRequestException('El emisor debe ser "user" o "agent"');
     }
+    // Clasificador
 
-    // 1️⃣ Generar embedding con Ollama
-    const embedding = await this.generarEmbedding(contenido);
+    const isform1 = await classifyFormFlag(contenido);
+    console.log(isform1)
+    console.log("linea 107")
+    //  Generar embedding con Ollama
+    const embedding = await this.generarEmbedding(contenido);  
+    const bogotaTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Bogota" })
+  );
 
-    // 2️⃣ Crear mensaje con embedding serializado
+  const year = bogotaTime.getFullYear();
+  const month = String(bogotaTime.getMonth() + 1).padStart(2, "0");
+  const day = String(bogotaTime.getDate()).padStart(2, "0");
+  const hours = String(bogotaTime.getHours()).padStart(2, "0");
+  const minutes = String(bogotaTime.getMinutes()).padStart(2, "0");
+  const seconds = String(bogotaTime.getSeconds()).padStart(2, "0");
+
+  const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  console.log(formatted)
+    //  Crear mensaje con embedding serializado
     const nuevoMensaje = this.mensajesRepository.create({
       emisor,
       contenido,
       embedding: JSON.stringify(embedding),
-      fcreado: now,
+      fcreado: formatted,
       idconversacion: idconversacion,
+      isform : isform1,
     });
 
     const guardado = await this.mensajesRepository.save(nuevoMensaje);
@@ -119,6 +137,8 @@ export class MensajesService {
       emisor: guardado.emisor,
       contenido: guardado.contenido,
       idconversacion: Number(guardado.idconversacion),
+      isform: guardado.isform,
+      fcreado:guardado.fcreado
     };
   }
 }

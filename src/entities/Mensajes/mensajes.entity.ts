@@ -22,6 +22,9 @@ export class Mensajes {
   @Column({ type: 'number' })
   idconversacion: Number;
 
+  @Column({ type: 'bigint' })
+  isform: number | null;
+
 
   @ManyToOne(() => Conversacion, (conversacion) => conversacion.mensaje, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'idconversacion' })
