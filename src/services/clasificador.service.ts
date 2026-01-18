@@ -1,80 +1,117 @@
-// formFlagClassifier.ts
+// Importación del servicio LlmService para interactuar con un modelo de lenguaje.
+import { LlmService } from "./llm.service";
 
-import { Ollama } from 'ollama'
-
-const ollama = new Ollama({ host: 'https://0x4kt4cc-11434.use2.devtunnels.ms' })
-//const ollama = new Ollama({ host: 'localhost:11434'})
+// Instanciación del servicio LlmService para su uso en el archivo.
+const llmService = new LlmService();
 
 /**
- * Clasifica si un mensaje solicita la creación de preguntas / formulario.
+ * Clasifica si un mensaje solicita la creación de preguntas o formulario.
  *
  * Retorna:
- *   1n   -> es formulario (setear isform = 1)
+ *   1   -> es formulario (setear isform = 1)
  *   null -> no es formulario
  */
 export async function classifyFormFlag(
   message: string
-): Promise<number | null>{
-    console.log(message)
+): Promise<number | null> {
   if (!message || !message.trim()) return null;
- 
-  console.log(classifyWithOllama(message))
-
-  // Clasificación con LLM pequeño (Ollama)
   return await classifyWithOllama(message);
-  
 }
 
 /**
- * Clasificador binario ultra simple con Ollama
+ * Clasificador binario: ¿CREA o SOLICITA un formulario?
  */
 async function classifyWithOllama(
   message: string
 ): Promise<number | null> {
   const prompt = `
-Analiza SOLO el mensaje, sin usar contexto previo.
+Tarea: clasificación binaria estricta.
+
+Analiza SOLO el mensaje proporcionado.
+NO uses contexto previo.
+NO asumas intención implícita.
 
 Devuelve ÚNICAMENTE:
-- "1" si el mensaje ES o SOLICITA un FORMULARIO o CUESTIONARIO,
-  es decir, un instrumento para que alguien RESPONDA preguntas.
+- "1" si el mensaje ES un FORMULARIO o CUESTIONARIO,
+  es decir, un texto que PRESENTA preguntas
+  y ESPERA que el lector las RESPONDA.
 - "null" en cualquier otro caso.
 
 Marca "1" SOLO si el mensaje:
-- pide crear / formular un formulario o cuestionario, O
-- presenta preguntas con intención clara de ser RESPONDIDAS
-  (por ejemplo: "responde", "contesta", "elige", "marca",
-   "completa", "selecciona", "opción A/B/C").
+- solicita explícitamente que alguien responda preguntas
+- contiene instrucciones de respuesta ("responde", "contesta", "marca", "elige", "selecciona")
+- presenta preguntas SIN resolver, dirigidas al lector
 
 NO marques "1" si el mensaje:
-- es una explicación o contenido educativo
-- incluye preguntas como ejemplos o ejercicios sugeridos
-- explica un tema y luego pregunta "¿tienes alguna duda?"
-- no tiene intención explícita de evaluación o recolección de respuestas
+- explica o RESUELVE ejercicios
+- desarrolla soluciones paso a paso
+- es una respuesta, explicación o tutoría
+- incluye preguntas ya respondidas
+- es contenido educativo, aunque esté numerado
+- finaliza con conclusiones o explicaciones
+- pregunta algo como "¿te gustaría continuar?"
 
-Mensaje:
+Mensaje a analizar:
 "${message}"
-`.trim(); 
+`.trim();
+
 
   try {
-    const response = await ollama.generate({
-      model: "llama3.2:3b",
-      prompt,
-      options: { temperature: 0 }
-    });
-    
-    console.log(response.response)
-    const output = response.response?.trim();
-    
-    if (output === "null") {
+    const response = await llmService.generarRespuesta(prompt);
+    const output = response?.trim();
+    return output === "null" ? null : 1;
+  } catch {
     return null;
-    
   }
-    else{
-      return 1;
-    }
-    
-  } catch (error) {
-    console.error("Error clasificando bandera isform con Ollama:", error);
-    return null;
+}
+
+/**
+ * Clasificador binario: ¿PREGUNTA SOBRE un formulario YA EXISTENTE?
+ *
+ * Retorna:
+ *   true  -> sí hace referencia a un formulario previo
+ *   false -> no (flujo normal del tutor)
+ */
+export async function esPreguntaSobreFormulario(
+  pregunta: string
+): Promise<boolean> {
+  if (!pregunta || !pregunta.trim()) return false;
+
+const prompt = `
+Tarea: clasificación binaria estricta.
+
+Analiza SOLO el mensaje del estudiante.
+NO uses contexto previo.
+NO inventes contenido nuevo.
+
+Devuelve ÚNICAMENTE:
+- "1" si el estudiante hace referencia a
+  PREGUNTAS, EJERCICIOS o ÍTEMS NUMERADOS
+  que claramente ASUMEN que ya existen
+  (por ejemplo: "ejercicio 4", "pregunta 2",
+   "el punto b", "el anterior").
+- "null" en cualquier otro caso.
+
+Marca "1" SOLO si el mensaje:
+- menciona un número de ejercicio o pregunta (ej: "ejercicio 4")
+- se refiere a un elemento previo de una lista
+- asume continuidad ("el anterior", "ese ejercicio")
+
+NO marques "1" si:
+- el estudiante pide crear nuevos ejercicios
+- hace una pregunta general o teórica
+- menciona números sin relación a ejercicios
+- no hay referencia clara a contenido previo
+
+Mensaje del estudiante:
+"${pregunta}"
+`.trim();
+
+
+  try {
+    const response = await llmService.generarRespuesta(prompt);
+    return response?.trim() === "1";
+  } catch {
+    return false;
   }
 }
