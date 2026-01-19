@@ -7,7 +7,7 @@ import { Mensajes } from '../Mensajes/mensajes.entity';
 import { Usuario } from '../Usuario/usuario.entity';
 
 // Decorador que indica que esta clase representa una tabla en la base de datos, con el nombre 'Conversacion'.
-@Entity('Conversacion')
+@Entity('conversacion')
 export class Conversacion {
   // Decorador que define la columna como clave primaria autoincremental.
   @PrimaryGeneratedColumn()

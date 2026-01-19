@@ -5,7 +5,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 't
 import { Conversacion } from '../Conversacion/conversacion.entity';
 
 // Decorador que indica que esta clase representa una tabla en la base de datos, con el nombre 'Mensajes'.
-@Entity('Mensajes')
+@Entity('mensajes')
 export class Mensajes {
   // Decorador que define la columna como clave primaria autoincremental.
   @PrimaryGeneratedColumn()
