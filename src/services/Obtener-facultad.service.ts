@@ -1,5 +1,5 @@
 // Importación de módulos y decoradores necesarios de NestJS y TypeORM.
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException  } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -17,7 +17,23 @@ export class ObtenerFacultad {
     
     // Método para obtener todas las facultades de la base de datos.
     async obtenerFacultades(): Promise<Facultad[]> {
-        // Retorna todas las facultades usando el método find del repositorio.
-        return this.FacultadRepository.find({});
+    try {
+      // Retorna todas las facultades usando el método find del repositorio.
+      const facultades = await this.FacultadRepository.find({});
+      
+      // Si no se encuentran facultades, lanzar una excepción 404
+      if (!facultades || facultades.length === 0) {
+        throw new NotFoundException('No se encontraron facultades en la base de datos.');
+      }
+      
+      return facultades;
+    } catch (error) {
+      // Si el error ya es una NotFoundException, lo re-lanzamos tal cual
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      // Para cualquier otro error inesperado, NestJS lo manejará como 500 automáticamente
+      throw error;
     }
+  }
 }

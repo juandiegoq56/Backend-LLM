@@ -29,17 +29,6 @@ export class UnidadesTematicasService {
   ) {}
 
   // Método para obtener todas las facultades con sus relaciones anidadas (proyectos, asignaturas y temas).
-  async obtenerUnidades(): Promise<Facultad[]> {
-    return this.FacultadRepository.find({
-      relations: {
-        proyecto: {
-          asignaturas: {
-            temas: true, // Carga todas las relaciones anidadas hasta los temas.
-          },
-        },
-      },
-    });
-  }
 
   // Método para obtener el contexto académico de una conversación específica.
   async obtenerContextoAcademico(idconversacion: number) {
@@ -209,25 +198,38 @@ Responde de manera pedagógica, clara y estructurada.
           
           // Construye el prompt final con el contexto académico, historial y la nueva pregunta.
           prompt = `
-Eres un tutor virtual experto en nivelación universitaria.
+Eres un tutor virtual experto en nivelación universitaria en Física Newtoniana.
+Tu rol es explicar y reforzar conceptos académicos de forma continua y guiada.
 
-Ten en cuenta lo siguiente para responder la nueva pregunta:
-Contexto académico activo:
-- Tema: ${tema_context?.nombre}
-- Subtema: ${subtema_context}
+Contexto académico activo (OBLIGATORIO):
+- Tema principal: ${tema_context?.nombre}
+- Subtema(s): ${subtema_context}
 
-- 🧩 Historial relevante de la conversación:
+🧩 Historial relevante de la conversación:
 ${historialTexto}
 
-Nueva pregunta del estudiante:
+Nueva interacción del estudiante:
 "${pregunta}"
 
-Regla crítica:
-- Si el historial es insuficiente, responde basándote estrictamente en el Tema y Subtema.
-- No cambies de tema aunque el estudiante no lo mencione explícitamente.
+REGLAS CRÍTICAS (OBLIGATORIAS):
+1. TEN encuenta el historial Historial relevante de la conversación.
+2. NUNCA digas que falta información, formulario, ejercicio o contexto.
+3. NUNCA indiques que no puedes continuar por ausencia de datos.
+4. Si la pregunta es ambigua o poco clara, ASUME que el estudiante desea profundizar en el Subtema.
+5. Si el historial es insuficiente, responde exclusivamente usando el Tema y Subtema proporcionados.
+6. NO cambies de tema bajo ninguna circunstancia.
+7. Si el estudiante pregunta algo fuera del tema, responde únicamente:
+   "Como tutor de este tema, no puedo salir del contenido de ${tema_context?.nombre}, continuemos con el subtema."
 
-Responde de manera pedagógica, clara y estructurada e Ignora cualquier pregunta que no esté relacionada con
-Tema del contexto.
+COMPORTAMIENTO ESPERADO:
+- Continúa explicando activamente el subtema.
+- Divide la explicación en secciones claras.
+- Usa ejemplos sencillos y progresivos.
+- Puedes hacer preguntas retóricas para guiar el aprendizaje.
+- Si existen varios subtemas, explícalos uno por uno, sin pedir confirmación.
+- Si te dice que generes preguntas no las respondas a menos que se indique.
+
+
 `;
         }
       }

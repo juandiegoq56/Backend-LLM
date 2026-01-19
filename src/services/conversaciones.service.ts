@@ -1,5 +1,5 @@
 // Importación de módulos y decoradores necesarios de NestJS y TypeORM.
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Conversacion } from '../entities/Conversacion/conversacion.entity';
@@ -19,6 +19,7 @@ export class ConversacionService {
 
   // Método para obtener todas las conversaciones con información relacionada de tema y usuario.
   async findAll(): Promise<any[]> {
+  try {
     // Busca todas las conversaciones, incluyendo relaciones con tema y usuario, ordenadas por fecha de último mensaje descendente.
     const conversaciones = await this.conversacionRepository.find({
       relations: ['tema', 'usuario'],
@@ -26,6 +27,11 @@ export class ConversacionService {
         fultimo_mensaje: 'DESC', // Ordena de más reciente a más antiguo.
       },
     });
+
+    // Validar si se encontraron conversaciones
+    if (!conversaciones || conversaciones.length === 0) {
+      throw new NotFoundException('No se encontraron conversaciones.');
+    }
 
     // Mapea las conversaciones para retornar un objeto con los campos deseados.
     return conversaciones.map((conv) => ({
@@ -36,10 +42,26 @@ export class ConversacionService {
       usuario: conv.idusuario, // Asumiendo que en la entidad Usuario hay un campo como "username".
       tema: conv.tema ? conv.tema.nombre : null, // Asumiendo que en la entidad Temas hay un campo "nombre".
     }));
-  }
+  } catch (error) {
+    // Manejo de errores específicos
+    if (error instanceof NotFoundException) {
+      throw error; // Re-lanzar error específico para que sea manejado por el controlador
+    }
+    // Manejo de errores inesperados (como problemas de base de datos)
+    throw new InternalServerErrorException('Error interno del servidor al obtener las conversaciones.');
+  }}
   
   // Método para obtener conversaciones filtradas por usuario y servicio.
   async findByUsuario(id: string, idservice: bigint): Promise<any[]> {
+  try {
+    // Validar que los parámetros no estén vacíos o sean inválidos
+    if (!id || id.trim() === '') {
+      throw new BadRequestException('El identificador del usuario no puede estar vacío.');
+    }
+    if (!idservice || isNaN(Number(idservice)) || idservice.toString().includes('.')) {
+      throw new BadRequestException('El identificador del servicio debe ser un número válido (bigint).');
+    }
+
     // Busca conversaciones filtradas por ID de usuario y servicio, incluyendo relación con tema, ordenadas por fecha de último mensaje descendente.
     const conversaciones = await this.conversacionRepository.find({
       where: { idusuario: id, idservicio: idservice },
@@ -49,17 +71,21 @@ export class ConversacionService {
       },
     });
 
-    // Mapea las conversaciones para retornar un objeto con los campos deseados.
-    return conversaciones.map((conv) => ({
-      idconversacion: conv.idconversacion,
-      titulo: conv.titulo,
-      fcreacion: conv.fcreacion,
-      fultimo_mensaje: conv.fultimo_mensaje,
-      usuario: conv.idusuario,
-      tema: conv.tema ? conv.tema.nombre : null,
-      idservice: conv.idservicio
-    }));
+    // Validar si se encontraron conversaciones
+    if (!conversaciones || conversaciones.length === 0) {
+      throw new NotFoundException('No se encontraron conversaciones para el usuario y servicio proporcionados.');
+    }
+
+    return conversaciones;
+  } catch (error) {
+    // Manejo de errores específicos
+    if (error instanceof BadRequestException || error instanceof NotFoundException) {
+      throw error; // Re-lanzar errores específicos para que sean manejados por el controlador
+    }
+    // Manejo de errores inesperados (como problemas de base de datos)
+    throw new InternalServerErrorException('Error interno del servidor al obtener las conversaciones.');
   }
+}
 
   // Método para crear una nueva conversación.
   async create(
