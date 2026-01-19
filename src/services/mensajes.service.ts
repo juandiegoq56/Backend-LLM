@@ -103,44 +103,7 @@ export class MensajesService {
 }
 
   // Método privado para generar un embedding a partir de un contenido de texto.
-  private async generarEmbedding(contenido: string): Promise<number[]> {
-    // Obtiene la URL para el servicio de embedding desde las variables de entorno.
-    const embeddingUrl = process.env.EMBEDDING;
-
-    // Lanza una excepción si la variable de entorno no está definida.
-    if (!embeddingUrl) {
-      throw new InternalServerErrorException(
-        'La variable de entorno EMBEDDING no está definida. ' +
-        'Agrega la variable en tu archivo .env',
-      );
-    }
-
-    try {
-      // Realiza una petición HTTP POST al servicio de embedding con el contenido proporcionado.
-      const response = await fetch(embeddingUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'nomic-embed-text', // Modelo usado para generar el embedding.
-          prompt: contenido, // Contenido de texto para el cual se generará el embedding.
-        }),
-      });
-
-      // Verifica si la respuesta de la petición no es exitosa y lanza un error en ese caso.
-      if (!response.ok) {
-        throw new Error(`Error al generar embedding: ${response.statusText}`);
-      }
-
-      // Parsea la respuesta JSON y retorna el embedding como un arreglo de números.
-      const data = (await response.json()) as { embedding: number[] };
-      return data.embedding;
-    } catch (error) {
-      // Maneja errores durante la generación del embedding, lanzando una excepción
-      throw new InternalServerErrorException(
-        'Error al generar el embedding con Ollama',
-      );
-    }
-  }
+ 
 
   // Método para crear un nuevo mensaje y generar su embedding.
   async create(createMensajeDto: CreateMensajeDto): Promise<any> {
