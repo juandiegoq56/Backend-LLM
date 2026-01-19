@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
+import { LlmService } from './llm.service'; // Importamos el nuevo servicio LlmService
 // Importación de la entidad Mensajes y el DTO para crear mensajes.
 import { Mensajes } from '../entities/Mensajes/mensajes.entity';
 import { Conversacion } from 'src/entities/Conversacion/conversacion.entity';
@@ -28,7 +28,8 @@ export class MensajesService {
     @InjectRepository(Mensajes)
     private readonly mensajesRepository: Repository<Mensajes>,
     @InjectRepository(Conversacion)
-    private readonly conversacionRepository : Repository<Conversacion>
+    private readonly conversacionRepository : Repository<Conversacion>,
+    private readonly llmService: LlmService, // Inyectamos el servicio para generar respuestas con LLM.
 
   ) {}
 
@@ -177,7 +178,7 @@ export class MensajesService {
     const isform = await classifyFormFlag(contenido);
 
     // Genera el embedding del contenido del mensaje.
-    const embedding = await this.generarEmbedding(contenido);  
+    const embedding = await this.llmService.generarEmbedding(contenido);  
 
     // Ajusta la fecha a la zona horaria de Bogotá y la formatea.
     const bogotaTime = new Date(
